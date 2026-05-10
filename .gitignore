@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+instance/fox.db
+.env
+*.bak
+fix.py
+generate_movies.py
+update_posters.py
+requirements-1.txt
