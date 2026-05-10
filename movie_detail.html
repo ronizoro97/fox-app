@@ -1,0 +1,580 @@
+{% extends 'base.html' %}
+{% block title %}{{ movie.title }} – Fox{% endblock %}
+
+{% block head %}
+<style>
+/* ── NETFLIX-STYLE HERO ── */
+.detail-hero-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.detail-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('{{ movie.poster }}');
+  background-size: cover;
+  background-position: center top;
+  filter: brightness(0.45);
+  transform: scale(1.03);
+  transition: transform 8s ease;
+}
+.detail-hero-bg.loaded { transform: scale(1); }
+.detail-hero-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.1) 0%,
+    rgba(0,0,0,0.0) 30%,
+    rgba(0,0,0,0.6) 60%,
+    rgba(10,10,10,1) 100%
+  );
+}
+.detail-hero-gradient-side {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(10,10,10,0.95) 0%,
+    rgba(10,10,10,0.7) 40%,
+    transparent 70%
+  );
+}
+
+.detail-hero-content {
+  position: relative;
+  z-index: 5;
+  padding: 120px 60px 60px;
+  max-width: 680px;
+  width: 100%;
+}
+
+.detail-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.badge-cat { background: #E50914; color: white; }
+.badge-type { background: rgba(255,255,255,.15); color: white; border: 1px solid rgba(255,255,255,.2); }
+.badge-age { background: rgba(255,200,0,.15); color: #ffc800; border: 1px solid rgba(255,200,0,.3); }
+
+.detail-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  letter-spacing: 2px;
+  line-height: 1;
+  margin-bottom: 16px;
+  text-shadow: 2px 2px 20px rgba(0,0,0,.8);
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  font-size: .88rem;
+  color: rgba(255,255,255,.8);
+}
+.imdb-score {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,193,7,.12);
+  border: 1px solid rgba(255,193,7,.3);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  color: #ffc107;
+  font-size: .88rem;
+}
+.meta-dot { color: rgba(255,255,255,.3); }
+
+.detail-desc {
+  font-size: .93rem;
+  color: rgba(255,255,255,.8);
+  line-height: 1.7;
+  margin-bottom: 28px;
+  max-width: 560px;
+}
+
+/* ACTION BUTTONS */
+.detail-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.btn-play {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 6px;
+  padding: 13px 32px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+}
+.btn-play:hover { background: rgba(255,255,255,.85); transform: scale(1.03); }
+.btn-play svg { width: 22px; height: 22px; }
+
+.btn-trailer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,.15);
+  color: white;
+  border: 2px solid rgba(255,255,255,.4);
+  border-radius: 6px;
+  padding: 13px 28px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: .95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s, transform .15s;
+  backdrop-filter: blur(4px);
+}
+.btn-trailer:hover { background: rgba(255,255,255,.25); transform: scale(1.03); }
+
+.btn-mylist {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,.1);
+  color: white;
+  border: 2px solid rgba(255,255,255,.3);
+  border-radius: 50px;
+  padding: 13px 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: .88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s;
+}
+.btn-mylist:hover { background: rgba(255,255,255,.2); }
+
+/* INFO GRID */
+.detail-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.info-row {
+  display: flex;
+  gap: 10px;
+  font-size: .83rem;
+}
+.info-label { color: rgba(255,255,255,.4); min-width: 80px; }
+.info-value { color: rgba(255,255,255,.85); }
+
+/* ── TRAILER MODAL ── */
+.trailer-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.92);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+}
+.trailer-modal.open { display: flex; }
+.trailer-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  aspect-ratio: 16/9;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 80px rgba(229,9,20,.3);
+}
+.trailer-wrap iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.trailer-close {
+  position: absolute;
+  top: -44px;
+  right: 0;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.6rem;
+  cursor: pointer;
+  opacity: .7;
+  transition: opacity .2s;
+}
+.trailer-close:hover { opacity: 1; }
+.no-trailer-msg {
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(255,255,255,.5);
+  font-size: .95rem;
+}
+
+/* ── RELATED ── */
+.detail-bottom { background: #0a0a0a; padding: 0 60px 60px; }
+.related-section { padding-top: 40px; }
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 22px;
+  background: #E50914;
+  border-radius: 2px;
+}
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+}
+.movie-card {
+  text-decoration: none;
+  color: white;
+  display: block;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: transform .3s;
+}
+.movie-card:hover { transform: scale(1.05); }
+.card-poster {
+  position: relative;
+  aspect-ratio: 2/3;
+  background: #1a1a1a;
+  overflow: hidden;
+}
+.card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity .3s;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 10px;
+  gap: 4px;
+}
+.movie-card:hover .card-overlay { opacity: 1; }
+.card-info { display: flex; gap: 8px; align-items: center; }
+.imdb-badge { font-size: .72rem; color: #ffc107; font-weight: 700; }
+.card-year { font-size: .72rem; color: rgba(255,255,255,.6); }
+.card-type-badge { font-size: .65rem; background: rgba(229,9,20,.7); padding: 2px 6px; border-radius: 3px; align-self: flex-start; }
+.card-title { padding: 8px 4px 4px; font-size: .8rem; font-weight: 600; color: rgba(255,255,255,.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  .detail-hero-content { padding: 100px 20px 40px; max-width: 100%; }
+  .detail-hero-gradient-side { display: none; }
+  .detail-hero-bg { background-position: center; }
+  .detail-title { font-size: clamp(2rem,9vw,3.5rem); }
+  .detail-desc { font-size: .85rem; }
+  .detail-actions { gap: 8px; }
+  .btn-play { padding: 11px 22px; font-size: .88rem; }
+  .btn-trailer { padding: 11px 18px; font-size: .82rem; }
+  .btn-mylist { padding: 11px 14px; font-size: .78rem; }
+  .detail-bottom { padding: 0 16px 40px; }
+  .related-grid { grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; }
+}
+@media (max-width: 480px) {
+  .detail-hero-content { padding: 90px 16px 32px; }
+  .detail-title { font-size: 2.2rem; }
+  .btn-play { padding: 10px 18px; font-size: .82rem; }
+  .btn-trailer { padding: 10px 14px; font-size: .78rem; }
+  .related-grid { grid-template-columns: repeat(3,1fr); gap: 8px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="detail-hero-wrap">
+  <div class="detail-hero-bg" id="heroBg"></div>
+  <div class="detail-hero-gradient"></div>
+  <div class="detail-hero-gradient-side"></div>
+
+  <div class="detail-hero-content">
+    <!-- Badges -->
+    <div class="detail-badges">
+      <span class="badge badge-cat">{{ movie.category }}</span>
+      <span class="badge badge-type">{{ movie.type }}</span>
+      {% if movie.age_rating and movie.age_rating not in ['-','nan'] %}
+        <span class="badge badge-age">{{ movie.age_rating }}</span>
+      {% endif %}
+    </div>
+
+    <!-- Title -->
+    <h1 class="detail-title">{{ movie.title }}</h1>
+
+    <!-- Meta -->
+    <div class="detail-meta">
+      {% if movie.imdb %}
+      <span class="imdb-score">⭐ {{ movie.imdb }} <small style="font-weight:400;opacity:.7">/ 10</small></span>
+      {% endif %}
+      <span>{{ movie.year }}</span>
+      {% if movie.duration and movie.duration not in ['-','nan'] and movie.type == 'Movie' %}
+        <span class="meta-dot">·</span>
+        <span>{{ movie.duration }} min</span>
+      {% endif %}
+      {% if movie.seasons and movie.seasons not in ['-','nan'] and movie.type == 'Series' %}
+        <span class="meta-dot">·</span>
+        <span>{{ movie.seasons }} Season(s)</span>
+      {% endif %}
+      {% if movie.language %}<span class="meta-dot">·</span><span>{{ movie.language }}</span>{% endif %}
+    </div>
+
+    <!-- Description -->
+    {% if movie.description %}
+    <p class="detail-desc">{{ movie.description }}</p>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="detail-actions">
+      <button class="btn-play" onclick="openTrailer()">
+        <svg viewBox="0 0 24 24" fill="black"><path d="M8 5v14l11-7z"/></svg>
+        Play Trailer
+      </button>
+      <button class="btn-mylist" onclick="toggleMyList(this)">
+        <span id="mylist-icon">＋</span> My List
+      </button>
+    </div>
+
+    <!-- Info -->
+    <div class="detail-info-grid">
+      {% if movie.genre %}
+      <div class="info-row"><span class="info-label">Genre</span><span class="info-value">{{ movie.genre }}</span></div>
+      {% endif %}
+      {% if movie.type == 'Game' %}
+        {% if movie.get('platform') and movie.get('platform') not in ['-','nan'] %}
+        <div class="info-row"><span class="info-label">Platform</span><span class="info-value">{{ movie.get('platform') }}</span></div>
+        {% endif %}
+        {% if movie.get('developer') and movie.get('developer') not in ['-','nan'] %}
+        <div class="info-row"><span class="info-label">Developer</span><span class="info-value">{{ movie.get('developer') }}</span></div>
+        {% endif %}
+        {% if movie.get('publisher') and movie.get('publisher') not in ['-','nan'] %}
+        <div class="info-row"><span class="info-label">Publisher</span><span class="info-value">{{ movie.get('publisher') }}</span></div>
+        {% endif %}
+      {% else %}
+        {% if movie.director and movie.director not in ['-','nan'] %}
+        <div class="info-row"><span class="info-label">Director</span><span class="info-value">{{ movie.director }}</span></div>
+        {% endif %}
+        {% if movie.cast and movie.cast not in ['-','nan'] %}
+        <div class="info-row"><span class="info-label">Cast</span><span class="info-value">{{ movie.cast }}</span></div>
+        {% endif %}
+        {% if movie.country %}
+        <div class="info-row"><span class="info-label">Country</span><span class="info-value">{{ movie.country }}</span></div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- FOX PLAYER MODAL -->
+<div id="foxPlayerModal" class="fp-modal">
+
+  <!-- VIDEO -->
+  <div class="fp-video">
+    <iframe id="ytIframe" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+    <div class="fp-click-overlay" onclick="fpTogglePlay()"></div>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="fp-top" id="playerTopBar">
+    <button class="fp-back" onclick="foxPlayerClose()">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      <span id="playerTitle" class="fp-title-bar"></span>
+    </button>
+  </div>
+
+  <!-- CENTER CONTROLS -->
+  <div class="fp-center" id="playerCenter">
+    <button class="fp-cbtn" onclick="fpSkipBack()">
+      <svg viewBox="0 0 36 36" fill="none">
+        <path d="M18 7V2L11 9l7 7v-5c4.97 0 9 4.03 9 9s-4.03 9-9 9-9-4.03-9-9H6c0 6.63 5.37 12 12 12s12-5.37 12-12S24.63 7 18 7z" fill="white"/>
+        <text x="18" y="22.5" text-anchor="middle" font-size="9" fill="white" font-weight="bold" font-family="Montserrat,sans-serif">10</text>
+      </svg>
+      <span>-10s</span>
+    </button>
+    <button class="fp-cbtn" onclick="fpTogglePlay()">
+      <svg id="playIcon" viewBox="0 0 36 36" fill="white"><path d="M12 8v20l16-10z"/></svg>
+      <svg id="pauseIcon" viewBox="0 0 36 36" fill="white" style="display:none"><path d="M9 8h5v20H9zm13 0h5v20h-5z"/></svg>
+    </button>
+    <button class="fp-cbtn" onclick="fpSkipForward()">
+      <svg viewBox="0 0 36 36" fill="none">
+        <path d="M18 7V2l7 7-7 7v-5c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9h3c0 6.63-5.37 12-12 12S6 25.63 6 19 11.37 7 18 7z" fill="white"/>
+        <text x="18" y="22.5" text-anchor="middle" font-size="9" fill="white" font-weight="bold" font-family="Montserrat,sans-serif">10</text>
+      </svg>
+      <span>+10s</span>
+    </button>
+  </div>
+
+  <!-- BOTTOM CONTROLS -->
+  <div class="fp-bottom" id="playerControls">
+    <!-- Seek -->
+    <div class="fp-seek-wrap" id="seekBar">
+      <div class="fp-seek-track">
+        <div class="fp-seek-fill" id="seekFill">
+          <div class="fp-seek-dot"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Row -->
+    <div class="fp-row">
+      <div class="fp-left">
+        <button class="fp-playbtn" onclick="fpTogglePlay()">
+          <svg id="playIcon2" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="pauseIcon2" viewBox="0 0 24 24" fill="white" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <span class="fp-time"><span id="timeElapsed">0:00</span> / <span id="timeDuration">2:30</span></span>
+      </div>
+      <div class="fp-right">
+            <button onclick="fpSelectLang(this,'Hindi')">Hindi</button>
+            <button onclick="fpSelectLang(this,'Spanish')">Spanish</button>
+          </div>
+        </button>
+        <!-- Fullscreen -->
+        <button class="fp-fullbtn" onclick="fpFullscreen()" title="Full Screen">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NO TRAILER -->
+  <div class="fp-no-trailer" id="noTrailerScreen">
+    <div style="font-size:3rem">🎬</div>
+    <p>Trailer not available for this title.</p>
+    <button onclick="foxPlayerClose()">← Go Back</button>
+  </div>
+
+</div>
+
+<!-- RELATED -->
+{% if related %}
+<div class="detail-bottom">
+  <section class="related-section">
+    <h2 class="section-title">More Like This</h2>
+    <div class="related-grid">
+      {% for m in related %}
+      <a href="{{ url_for('movie_detail', movie_id=m.id) }}" class="movie-card">
+        <div class="card-poster">
+          <img src="{{ m.poster }}" alt="{{ m.title }}" onerror="this.style.display='none'">
+          <div class="card-overlay">
+            <div class="card-info">
+              <span class="imdb-badge">⭐ {{ m.imdb }}</span>
+              <span class="card-year">{{ m.year }}</span>
+            </div>
+            <span class="card-type-badge">{{ m.type }}</span>
+          </div>
+        </div>
+        <div class="card-title">{{ m.title }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// BG image animation
+(function(){
+  const bg = document.getElementById('heroBg');
+  if (!bg) return;
+  bg.style.backgroundImage = "url('{{ movie.poster }}')";
+  const img = new Image();
+  img.onload = () => bg.classList.add('loaded');
+  img.src = '{{ movie.poster }}';
+})();
+
+// Trailer map
+const trailerMap = {
+  "The Dark Knight":"EXeTwQWrcwY","Inception":"YoHD9XEInc0","Interstellar":"zSWdZVtXT7E",
+  "The Matrix":"vKQi3bBA1y8","Avengers: Endgame":"TcMBFSGVi1c","Breaking Bad":"HhesaQXLuRY",
+  "Game of Thrones":"KPLWWIOCOOQ","Stranger Things":"b9EkMc79ZSU","Money Heist":"1cU0oSnb3DE",
+  "Joker":"zAGVQLHvwOY","Parasite":"5xH0HfJHsaY","The Godfather":"sY1S34973zA",
+  "Pulp Fiction":"s7EdQ4FqbhY","Fight Club":"SUXWAEX2jlg","Forrest Gump":"bLvqoHBptjg",
+  "The Shawshank Redemption":"6hB3S9bIaco","Titanic":"CHekZvsUDNk","Avatar":"5PSNL1qE6VY",
+  "Dune":"8g18jFHCLXk","Spider-Man: Into the Spider-Verse":"g4Hbz2jLxvQ",
+  "Blade Runner 2049":"gD6zD4oB6jY","Mad Max: Fury Road":"hEJnMQG9ev8",
+  "John Wick":"2AUmvWm5ZDQ","Get Out":"DzfpyUB60YY","A Quiet Place":"WR7cc5t7tv8",
+  "Hereditary":"vDHgwHMKaZo","The Conjuring":"k10ETZ41q5o","It":"FnCdOQsX5kc",
+  "Shrek":"CwOVBjKJpn0","Frozen":"TbQm5doF_Uc","Coco":"Ga6RYejo6Hk",
+  "Finding Nemo":"wZdpNglLbt8","Toy Story":"KYz2wyBy3kc","Inside Out":"yRUAzGQ3nSY",
+  "Up":"pkqzFUhGPKg","Moana":"LKFuXETZUsI","Kung Fu Panda":"GiMeNaZSsMQ",
+  "Deadpool":"ONHBaC-pfsk","Free Guy":"X2m-08cOAbc","Edge of Tomorrow":"UVHMgxi-fYY",
+  "Arrival":"tFMo3UJ4B4g","Gravity":"OiTiKOy59o4","The Martian":"ej3ioOneTy8",
+  "Whiplash":"7d_jQycdQGo","La La Land":"0pdqf4P9MB8","1917":"gZjQROMAh_s",
+  "Oppenheimer":"uYPbbksJxIg","Barbie":"pBk4NYhaToE","Top Gun: Maverick":"qSqVVswa420",
+  "No Time to Die":"BIhNsAtPbPI","Casino Royale":"6rBi1xITF4g",
+  "Mission: Impossible":"wb49-oV0F78","Die Hard":"2bPkLVFMDjo","Gladiator":"owK1qxDselE",
+  "Braveheart":"OBUFYlPxNaU","The Hangover":"tcdDcSBLpnM","Home Alone":"gONQCIevSN0",
+  "Friends":"pT4DVSUQ5Es","The Office":"LHOtClRjKn0","Rick and Morty":"KgX9RJKMT6U",
+  "Arcane":"4Ps6nV4wiCE","Attack on Titan":"MGRm4IzK1SQ","Demon Slayer":"VQGCKyvzIM4",
+  "Naruto":"l2RgJCNkawg","Dragon Ball Z":"EcciZbkR-7A","One Piece":"PuwAqh_gCWg",
+  "Peaky Blinders":"oVzVdvGIC7U","Prison Break":"YHn5rlRNI0o",
+  "Better Call Saul":"HN4oydykJFc","Narcos":"xl8zdCY-abw","Vikings":"Z4G4t5hfPLo",
+  "Suits":"COJSHccmGBY","Sherlock":"R7-BgkS7Nq0","The Crown":"JWtnJjn6ng0",
+  "Daredevil":"F8BBT4O4Aqo","The Punisher":"Tq6Nnbr3Yls","Loki":"nW948Va-l10",
+  "The Mandalorian":"aOC8E8z_ifw","The Last of Us":"uLtkt8BonwM",
+  "House of the Dragon":"DotnJ7tTA34","Wednesday":"Di310WS8zLk",
+  "Squid Game":"oqxAJKy0ii4","Dark":"rrwycJ08PSA","Severance":"yYjLrHKHYFM",
+  "Foundation":"654R5JJyiPs","Black Mirror":"jjDGABscPeA","Andor":"cKOegEuCcfw",
+  "Star Wars":"sGbxmsDFVnE","3 Idiots":"xvszmNXdM4w","Euphoria":"We_dp73gEMs",
+  "Smile":"Wfh4JKsKsTE","Insidious":"WiKtWXcpQfc","The Ring":"PBThvfr36XA",
+  "The Green Mile":"Ki4haKspMYU","Avatar: The Last Airbender":"TkAROzBhZbA"
+};
+
+const movieTitle = "{{ movie.title }}";
+
+function openTrailer() {
+  const low = movieTitle.toLowerCase();
+  let id = trailerMap[movieTitle];
+  if (!id) {
+    for (const [k,v] of Object.entries(trailerMap)) {
+      if (k.toLowerCase() === low) { id = v; break; }
+    }
+  }
+  foxPlayerOpen(id, movieTitle, 150);
+}
+
+function toggleMyList(btn) { window.toggleMyList(btn); }
+</script>
+{% endblock %}

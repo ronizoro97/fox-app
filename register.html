@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fox – Create Account</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body class="auth-body">
+
+<div id="intro-screen">
+  <div style="text-align:center;">
+    <div class="intro-logo">
+      <div class="intro-logo-text"><span class="fo">FO</span><span class="x">X</span></div>
+    </div>
+    <div class="intro-tagline">Stream · Explore · Discover</div>
+  </div>
+</div>
+
+<div class="auth-bg-wrap"></div>
+<div class="auth-center">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-text">FO<span class="x">X</span></div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for cat, msg in messages %}
+            <div class="flash flash-{{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <h2>Create Account</h2>
+    <form method="POST" action="{{ url_for('register') }}">
+      <div class="input-group">
+        <input type="text" name="name" placeholder="Full Name" required/>
+      </div>
+      <div class="input-group">
+        <input type="email" name="email" placeholder="Email Address" required/>
+      </div>
+      <div class="input-group">
+        <input type="password" name="password" placeholder="Password" required/>
+      </div>
+      <div class="input-group">
+        <input type="password" name="confirm" placeholder="Confirm Password" required/>
+      </div>
+      <button type="submit" class="auth-btn">Create Account</button>
+    </form>
+    <div class="auth-switch">
+      Already have an account? <a href="{{ url_for('login') }}">Sign In</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  setTimeout(() => {
+    const intro = document.getElementById('intro-screen');
+    if (intro) intro.style.display = 'none';
+  }, 4200);
+</script>
+</body>
+</html>

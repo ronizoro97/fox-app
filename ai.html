@@ -1,0 +1,447 @@
+{% extends 'base.html' %}
+{% block title %}Fox AI – Movie Assistant{% endblock %}
+
+{% block head %}
+<style>
+:root {
+  --red:#E50914; --red-dark:#b20710; --red-glow:rgba(229,9,20,0.25);
+  --black:#000; --dark:#0a0a0a; --dark2:#141414; --dark3:#1a1a1a;
+  --gray:#808080; --white:#fff; --border:rgba(255,255,255,0.07);
+  --border-red:rgba(229,9,20,0.25);
+}
+
+/* Override base for AI page */
+body { overflow:hidden; height:100vh; }
+footer, #ai-chat-fab { display:none !important; }
+
+.ai-wrap {
+  display:flex; height:calc(100vh - 68px); margin-top:68px; overflow:hidden;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width:260px; flex-shrink:0; background:var(--dark);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column; overflow-y:auto;
+  scrollbar-width:thin; scrollbar-color:#2a2a2a transparent;
+}
+.new-chat-btn {
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  margin:16px; padding:14px 16px; background:var(--red);
+  color:white; border:none; border-radius:4px;
+  font-family:'Montserrat',sans-serif; font-size:.95rem; font-weight:800;
+  cursor:pointer; transition:background .2s, transform .2s;
+  letter-spacing:1px;
+}
+.new-chat-btn:hover { background:var(--red-dark); transform:scale(1.03); }
+.sidebar-title {
+  font-size:.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  color:var(--gray); padding:0 20px 10px;
+}
+.chat-history-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 20px; cursor:pointer; transition:background .15s;
+}
+.chat-history-item:hover { background:rgba(255,255,255,.04); }
+.chat-history-item.active { background:rgba(229,9,20,.08); border-right:2px solid var(--red); }
+.chat-history-item .label {
+  font-size:.8rem; color:rgba(255,255,255,.65);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.chat-history-item.active .label { color:white; }
+.sidebar-divider { height:1px; background:var(--border); margin:12px 20px; }
+.sidebar-bottom {
+  margin-top:auto; padding:16px 20px;
+  border-top:1px solid var(--border);
+  font-size:.7rem; color:rgba(255,255,255,.25); line-height:1.6;
+}
+
+/* CHAT AREA */
+.chat-area {
+  flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative;
+}
+.chat-area::before {
+  content:''; position:absolute; inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+  background-size:40px 40px; pointer-events:none; z-index:0;
+}
+
+/* MESSAGES */
+.messages-container {
+  flex:1; overflow-y:auto; padding:40px 0;
+  scrollbar-width:thin; scrollbar-color:#2a2a2a transparent;
+  position:relative; z-index:1;
+}
+.messages-container::-webkit-scrollbar { width:4px; }
+.messages-container::-webkit-scrollbar-thumb { background:#2a2a2a; border-radius:2px; }
+
+/* WELCOME */
+.welcome-screen {
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; min-height:60vh; padding:40px 24px; text-align:center;
+}
+.welcome-title {
+  font-family:'Bebas Neue',sans-serif; font-size:clamp(3rem,8vw,5rem);
+  letter-spacing:8px; margin-bottom:16px;
+  animation:fadeUp .6s ease both;
+}
+.ai-text {
+  color:var(--red); position:relative;
+  text-shadow:0 0 30px rgba(229,9,20,.6);
+}
+.welcome-sub { font-size:.9rem; color:rgba(255,255,255,.5); margin-bottom:32px; animation:fadeUp .6s ease .1s both; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+.suggestions-grid {
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:10px; max-width:520px; width:100%; animation:fadeUp .6s ease .2s both;
+}
+.suggestion-chip {
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+  border-radius:8px; padding:14px 16px; cursor:pointer;
+  transition:all .2s; text-align:left;
+}
+.suggestion-chip:hover { background:rgba(229,9,20,.08); border-color:rgba(229,9,20,.3); }
+.chip-text { font-size:.82rem; color:rgba(255,255,255,.75); line-height:1.4; }
+
+/* MESSAGES */
+.message-row {
+  display:flex; gap:12px; padding:10px 24px; max-width:840px; margin:0 auto; width:100%;
+  animation:fadeUp .3s ease;
+}
+.message-row.user { flex-direction:row-reverse; }
+.avatar {
+  width:36px; height:36px; border-radius:8px; display:flex;
+  align-items:center; justify-content:center; font-size:.75rem;
+  font-weight:800; flex-shrink:0; letter-spacing:.5px;
+}
+.ai-avatar { background:linear-gradient(135deg,var(--red),#8B0000); color:white; }
+.user-avatar { background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); color:white; }
+.bubble {
+  max-width:75%; padding:14px 18px; border-radius:12px;
+  font-size:.88rem; line-height:1.65;
+}
+.ai-bubble { background:rgba(255,255,255,.05); border:1px solid var(--border); border-top-left-radius:4px; }
+.user-bubble { background:linear-gradient(135deg,rgba(229,9,20,.2),rgba(229,9,20,.1)); border:1px solid var(--border-red); border-top-right-radius:4px; color:white; }
+
+/* MOVIE POSTERS IN CHAT */
+.chat-posters { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+.chat-poster-card { width:100px; text-decoration:none; color:inherit; }
+.chat-poster-card img { width:100%; border-radius:6px; aspect-ratio:2/3; object-fit:cover; display:block; background:#1a1a1a; }
+.chat-poster-card .ptitle { font-size:.68rem; text-align:center; margin-top:4px; color:#ccc; }
+.chat-poster-card .pimdb { font-size:.63rem; text-align:center; color:#f5c518; }
+
+/* TYPING */
+.typing-indicator {
+  display:flex; gap:5px; align-items:center;
+  background:rgba(255,255,255,.05); border:1px solid var(--border);
+  border-radius:12px; border-top-left-radius:4px; padding:14px 18px;
+}
+.typing-dot {
+  width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.4);
+  animation:typingBounce .8s ease infinite;
+}
+.typing-dot:nth-child(2){animation-delay:.15s;}
+.typing-dot:nth-child(3){animation-delay:.3s;}
+@keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+/* INPUT AREA */
+.input-area {
+  position:relative; z-index:2; padding:16px 24px 20px;
+  background:linear-gradient(to top,var(--black) 80%,transparent);
+  border-top:1px solid var(--border);
+}
+.quick-topics { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.topic-pill {
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  border-radius:20px; padding:5px 14px; font-size:.75rem; color:rgba(255,255,255,.6);
+  cursor:pointer; transition:all .2s;
+}
+.topic-pill:hover { background:rgba(229,9,20,.1); border-color:rgba(229,9,20,.3); color:white; }
+.input-wrapper {
+  display:flex; align-items:flex-end; gap:10px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12);
+  border-radius:12px; padding:12px 14px;
+  transition:border-color .2s;
+}
+.input-wrapper:focus-within { border-color:rgba(229,9,20,.5); }
+.input-box {
+  flex:1; background:transparent; border:none; outline:none;
+  color:white; font-family:'Montserrat',sans-serif; font-size:.9rem;
+  resize:none; min-height:24px; max-height:160px; line-height:1.5;
+  scrollbar-width:none;
+}
+.input-box::placeholder { color:rgba(255,255,255,.3); }
+.send-btn {
+  width:38px; height:38px; background:var(--red); border:none; border-radius:8px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; transition:background .2s, transform .1s;
+}
+.send-btn:hover { background:var(--red-dark); }
+.send-btn:active { transform:scale(.95); }
+.send-btn svg { width:18px; height:18px; }
+.send-btn:disabled { opacity:.4; cursor:not-allowed; }
+.input-hints { font-size:.7rem; color:rgba(255,255,255,.2); margin-top:8px; }
+.input-hints span { color:rgba(255,255,255,.4); }
+
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .message-row{padding:8px 16px;}
+  .suggestions-grid{grid-template-columns:1fr;}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ai-wrap">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <button class="new-chat-btn" onclick="newChat()">
+      <span style="font-size:1.2rem;">✏️</span> New Chat
+    </button>
+    <div class="sidebar-title">Recent Chats</div>
+    <div id="history-list">
+      <div class="chat-history-item active">
+        <span class="label">🎬 Start a conversation…</span>
+      </div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-bottom">
+      FOX AI — Powered by Claude<br>
+      Movie info, ratings & recommendations
+    </div>
+  </aside>
+
+  <!-- CHAT AREA -->
+  <div class="chat-area">
+    <div class="messages-container" id="messages">
+      <div class="welcome-screen" id="welcome-screen">
+        <div class="welcome-title">FOX <span class="ai-text">AI</span></div>
+        <p class="welcome-sub">Ask about movies and shows — ratings, plot details, and personalized picks.</p>
+        <div class="suggestions-grid">
+          <div class="suggestion-chip" onclick="askSuggestion(this)">
+            <span class="chip-text">Best thriller movies with high IMDb rating?</span>
+          </div>
+          <div class="suggestion-chip" onclick="askSuggestion(this)">
+            <span class="chip-text">Recommend top 5 action movies</span>
+          </div>
+          <div class="suggestion-chip" onclick="askSuggestion(this)">
+            <span class="chip-text">I'm sad, what should I watch?</span>
+          </div>
+          <div class="suggestion-chip" onclick="askSuggestion(this)">
+            <span class="chip-text">Tell me about Breaking Bad</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUT -->
+    <div class="input-area">
+      <div class="quick-topics" id="quick-topics">
+        <div class="topic-pill" onclick="useTopic('Movies')">Movies</div>
+        <div class="topic-pill" onclick="useTopic('Series')">TV Shows</div>
+        <div class="topic-pill" onclick="useTopic('Ratings')">Ratings</div>
+        <div class="topic-pill" onclick="useTopic('Horror')">Horror</div>
+        <div class="topic-pill" onclick="useTopic('Comedy')">Comedy</div>
+        <div class="topic-pill" onclick="useTopic('Sci-Fi')">Sci-Fi</div>
+      </div>
+      <div class="input-wrapper">
+        <textarea class="input-box" id="user-input"
+          placeholder="Ask about a movie or show…"
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M5 12H19M19 12L13 6M19 12L13 18" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hints"><span>Enter</span> to send · <span>Shift+Enter</span> for new line</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let MOVIES = [];
+fetch('/api/movies').then(r=>r.json()).then(d=>{ MOVIES=d; });
+
+let conversationHistory = [];
+let isLoading = false;
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+function handleKey(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function askSuggestion(el) {
+  document.getElementById('user-input').value = el.querySelector('.chip-text').textContent;
+  sendMessage();
+}
+function useTopic(text) {
+  document.getElementById('user-input').value = text + ' ';
+  document.getElementById('user-input').focus();
+}
+function quickTopic(text) {
+  document.getElementById('user-input').value = text;
+  sendMessage();
+}
+function hideWelcome() {
+  const ws = document.getElementById('welcome-screen');
+  if (ws) ws.style.display = 'none';
+  const qt = document.getElementById('quick-topics');
+  if (qt) qt.style.display = 'none';
+}
+
+async function sendMessage() {
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text || isLoading) return;
+
+  hideWelcome();
+  isLoading = true;
+  appendMessage('user', text);
+  conversationHistory.push({ role:'user', content:text });
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('send-btn').disabled = true;
+
+  const typingId = appendTyping();
+
+  const movieList = MOVIES.map(m =>
+    `[ID:${m.id}] ${m.title} (${m.year}) | ${m.type} | ${m.category} | IMDb:${m.imdb} | Genre:${m.genre} | Cast:${m.cast?.slice(0,60)}`
+  ).join('\n');
+
+  const systemPrompt = `You are FOX AI, the official AI assistant for FOX streaming platform.
+You have access to this movie library:
+${movieList}
+
+Rules:
+- Always respond in English
+- Understand mood and intent (sad→emotional films, bored→exciting films)
+- When recommending movies from the library, output their IDs like: MOVIES_JSON:[1,5,12]
+- Format movie titles in **bold**
+- Mention IMDb rating and year for recommendations
+- Be enthusiastic, friendly, and cinema-focused
+- Keep responses concise`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':'YOUR_API_KEY_HERE',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system: systemPrompt,
+        messages: conversationHistory
+      })
+    });
+
+    const data = await res.json();
+    removeTyping(typingId);
+
+    let reply = data.content?.filter(b=>b.type==='text').map(b=>b.text).join('\n') || 'Sorry, something went wrong!';
+    conversationHistory.push({ role:'assistant', content:reply });
+
+    // Extract movie IDs
+    const match = reply.match(/MOVIES_JSON:\[([^\]]*)\]/);
+    let postersHTML = '';
+    if (match) {
+      const ids = match[1].split(',').map(x=>parseInt(x.trim())).filter(Boolean);
+      const found = ids.map(id=>MOVIES.find(m=>m.id===id)).filter(Boolean);
+      if (found.length) {
+        postersHTML = '<div class="chat-posters">' + found.slice(0,6).map(m=>`
+          <a href="/movie/${m.id}" class="chat-poster-card">
+            <img src="${m.poster}" alt="${m.title}" onerror="this.style.display='none'"/>
+            <div class="ptitle">${m.title}</div>
+            <div class="pimdb">⭐ ${m.imdb}</div>
+          </a>`).join('') + '</div>';
+      }
+      reply = reply.replace(/MOVIES_JSON:\[[^\]]*\]/,'').trim();
+    }
+
+    reply = reply
+      .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\n/g,'<br/>');
+
+    appendMessage('ai', reply + postersHTML);
+    saveToHistory(text);
+
+  } catch(err) {
+    removeTyping(typingId);
+    appendMessage('ai', '⚠️ API key needed! Add your Anthropic API key in ai.html. Get it free at console.anthropic.com');
+    console.error(err);
+  }
+
+  isLoading = false;
+  document.getElementById('send-btn').disabled = false;
+}
+
+function appendMessage(role, html) {
+  const container = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = `message-row ${role}`;
+  row.innerHTML = `
+    <div class="avatar ${role==='ai'?'ai-avatar':'user-avatar'}">${role==='ai'?'AI':'U'}</div>
+    <div class="bubble ${role==='ai'?'ai-bubble':'user-bubble'}">${html}</div>`;
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function appendTyping() {
+  const container = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = 'message-row';
+  const id = 'typing-' + Date.now();
+  row.id = id;
+  row.innerHTML = `<div class="avatar ai-avatar">AI</div>
+    <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+  return id;
+}
+function removeTyping(id) { const el=document.getElementById(id); if(el) el.remove(); }
+
+let historyCount = 0;
+function saveToHistory(text) {
+  if (historyCount >= 8) return;
+  const list = document.getElementById('history-list');
+  const item = document.createElement('div');
+  item.className = 'chat-history-item';
+  item.innerHTML = `<span class="label">💬 ${text.substring(0,28)}${text.length>28?'...':''}</span>`;
+  list.insertBefore(item, list.firstChild);
+  historyCount++;
+  document.querySelectorAll('.chat-history-item').forEach(i=>i.classList.remove('active'));
+  item.classList.add('active');
+}
+
+function newChat() {
+  conversationHistory = [];
+  historyCount = 0;
+  const container = document.getElementById('messages');
+  container.innerHTML = `
+    <div class="welcome-screen" id="welcome-screen">
+      <div class="welcome-title">FOX <span class="ai-text">AI</span></div>
+      <p class="welcome-sub">Ask about movies and shows — ratings, plot details, and personalized picks.</p>
+      <div class="suggestions-grid">
+        <div class="suggestion-chip" onclick="askSuggestion(this)"><span class="chip-text">Best thriller movies with high IMDb rating?</span></div>
+        <div class="suggestion-chip" onclick="askSuggestion(this)"><span class="chip-text">Recommend top 5 action movies</span></div>
+        <div class="suggestion-chip" onclick="askSuggestion(this)"><span class="chip-text">I'm sad, what should I watch?</span></div>
+        <div class="suggestion-chip" onclick="askSuggestion(this)"><span class="chip-text">Tell me about Breaking Bad</span></div>
+      </div>
+    </div>`;
+  const qt = document.getElementById('quick-topics');
+  if (qt) qt.style.display = 'flex';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,523 @@
+{% extends 'base.html' %}
+{% block title %}Games – Fox{% endblock %}
+
+{% block head %}
+<style>
+.games-hero {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a0a00 50%, #0a0a0a 100%);
+  padding: 80px 5% 50px;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(229,9,20,.15);
+}
+.games-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 60% 50%, rgba(229,9,20,.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.games-hero-content { position: relative; z-index: 2; }
+.games-hero-eyebrow {
+  font-size: .75rem; letter-spacing: 4px; text-transform: uppercase;
+  color: #E50914; font-weight: 700; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.games-hero-eyebrow::before {
+  content: ''; display: block; width: 24px; height: 2px; background: #E50914;
+}
+.games-hero h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.8rem, 8vw, 5rem);
+  letter-spacing: 3px; line-height: 1; margin-bottom: 14px;
+  color: white;
+}
+.games-hero h1 span { color: #E50914; }
+.games-hero p { font-size: .95rem; color: rgba(255,255,255,.55); max-width: 500px; line-height: 1.6; }
+
+/* FILTER BAR */
+.games-filter-bar {
+  background: #0d0d0d;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  padding: 14px 5%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  position: sticky; top: 66px; z-index: 50;
+}
+.filter-label { font-size: .75rem; color: rgba(255,255,255,.35); letter-spacing: 2px; text-transform: uppercase; margin-right: 6px; }
+.filter-btn {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+  color: rgba(255,255,255,.6); border-radius: 20px; padding: 6px 16px;
+  font-size: .78rem; font-family: 'Montserrat',sans-serif; font-weight: 600;
+  cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.filter-btn:hover, .filter-btn.active {
+  background: #E50914; border-color: #E50914; color: white;
+}
+.filter-search-wrap {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px; padding: 6px 14px;
+}
+.filter-search-wrap i { color: rgba(255,255,255,.3); font-size: .8rem; }
+.filter-search-wrap input {
+  background: none; border: none; outline: none; color: white;
+  font-family: 'Montserrat',sans-serif; font-size: .8rem; width: 160px;
+}
+.filter-search-wrap input::placeholder { color: rgba(255,255,255,.3); }
+
+/* GAMES GRID */
+.games-section { padding: 40px 5%; }
+.games-section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem; letter-spacing: 3px; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 10px; color: white;
+}
+.games-section-title::before {
+  content: ''; display: block; width: 4px; height: 20px;
+  background: #E50914; border-radius: 2px;
+}
+.games-count {
+  font-family: 'Montserrat', sans-serif; font-size: .75rem;
+  color: rgba(255,255,255,.3); letter-spacing: 1px; font-weight: 400;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 18px;
+}
+.game-card {
+  display: block; text-decoration: none; color: white;
+  border-radius: 8px; overflow: hidden;
+  background: #111;
+  border: 1px solid rgba(255,255,255,.06);
+  transition: transform .3s, border-color .3s, box-shadow .3s;
+  cursor: pointer;
+}
+.game-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(229,9,20,.4);
+  box-shadow: 0 12px 40px rgba(0,0,0,.6), 0 0 20px rgba(229,9,20,.1);
+}
+.game-poster-wrap {
+  position: relative;
+  aspect-ratio: 3/4;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+.game-poster-wrap img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .4s;
+}
+.game-card:hover .game-poster-wrap img { transform: scale(1.08); }
+
+.game-poster-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.9) 0%, rgba(0,0,0,.3) 50%, transparent 100%);
+  opacity: 0; transition: opacity .3s;
+  display: flex; flex-direction: column;
+  justify-content: flex-end; padding: 14px;
+}
+.game-card:hover .game-poster-overlay { opacity: 1; }
+.game-play-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; background: white; border-radius: 50%;
+  margin: 0 auto 10px; transition: transform .2s;
+}
+.game-card:hover .game-play-btn { transform: scale(1.1); }
+.game-play-btn svg { width: 18px; height: 18px; fill: black; }
+
+.game-overlay-meta { text-align: center; }
+.game-overlay-rating { font-size: .78rem; color: #ffc107; font-weight: 700; margin-bottom: 4px; }
+.game-overlay-platform { font-size: .68rem; color: rgba(255,255,255,.55); }
+
+.game-poster-badge {
+  position: absolute; top: 8px; left: 8px;
+  background: #E50914; color: white; border-radius: 4px;
+  font-size: .65rem; font-weight: 700; padding: 3px 8px;
+  letter-spacing: .5px;
+}
+
+.game-info { padding: 12px 12px 14px; }
+.game-title {
+  font-size: .85rem; font-weight: 700; color: white;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 5px;
+}
+.game-meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px;
+}
+.game-genre {
+  font-size: .68rem; color: rgba(255,255,255,.4);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
+}
+.game-score {
+  font-size: .72rem; color: #ffc107; font-weight: 700;
+  white-space: nowrap;
+}
+
+/* EMPTY STATE */
+.empty-state {
+  text-align: center; padding: 80px 20px; color: rgba(255,255,255,.3);
+}
+.empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+.empty-state p { font-size: .9rem; }
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .games-hero { padding: 70px 16px 36px; }
+  .games-filter-bar { padding: 12px 16px; top: 56px; }
+  .filter-search-wrap { margin-left: 0; width: 100%; }
+  .filter-search-wrap input { width: 100%; }
+  .games-section { padding: 28px 16px; }
+  .games-grid { grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 12px; }
+}
+@media (max-width: 480px) {
+  .games-grid { grid-template-columns: repeat(2,1fr); gap: 10px; }
+  .filter-btn { padding: 5px 12px; font-size: .72rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="games-hero">
+  <div class="games-hero-content">
+    <div class="games-hero-eyebrow">Fox Games</div>
+    <h1>Top <span>Games</span><br>of All Time</h1>
+    <p>50 handpicked titles — RPG, FPS, Sports, Horror, Strategy and more. Click any game to watch its trailer.</p>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="games-filter-bar" id="filterBar">
+  <span class="filter-label">Genre</span>
+  <button class="filter-btn active" data-genre="All" onclick="filterGames(this,'All')">All</button>
+  <button class="filter-btn" data-genre="RPG" onclick="filterGames(this,'RPG')">RPG</button>
+  <button class="filter-btn" data-genre="FPS" onclick="filterGames(this,'FPS')">FPS</button>
+  <button class="filter-btn" data-genre="Sports" onclick="filterGames(this,'Sports')">Sports</button>
+  <button class="filter-btn" data-genre="Horror" onclick="filterGames(this,'Horror')">Horror</button>
+  <button class="filter-btn" data-genre="Racing" onclick="filterGames(this,'Racing')">Racing</button>
+  <button class="filter-btn" data-genre="Fighting" onclick="filterGames(this,'Fighting')">Fighting</button>
+  <button class="filter-btn" data-genre="Strategy" onclick="filterGames(this,'Strategy')">Strategy</button>
+  <button class="filter-btn" data-genre="Sandbox" onclick="filterGames(this,'Sandbox')">Sandbox</button>
+  <div class="filter-search-wrap">
+    <i class="fa-solid fa-search"></i>
+    <input type="text" id="gameSearch" placeholder="Search games…" oninput="searchGames(this.value)"/>
+  </div>
+</div>
+
+<!-- GAMES GRID -->
+<div class="games-section">
+  <div class="games-section-title">
+    All Games <span class="games-count" id="gamesCount">— {{ games|length }} titles</span>
+  </div>
+  <div class="games-grid" id="gamesGrid">
+    {% for game in games %}
+    <a class="game-card" href="{{ url_for('game_detail', game_id=game.id) }}"
+       data-genre="{{ game.genre }}" data-title="{{ game.title|lower }}">
+      <div class="game-poster-wrap">
+        <img src="{{ game.poster }}" alt="{{ game.title }}"
+             onerror="this.src='/static/images/no-poster.jpg'"/>
+        <div class="game-poster-badge">GAME</div>
+        <div class="game-poster-overlay">
+          <div class="game-play-btn">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <div class="game-overlay-meta">
+            <div class="game-overlay-rating">⭐ {{ game.imdb }}/10</div>
+            <div class="game-overlay-platform">{{ game.get('platform','') | truncate(30, true, '…') }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="game-info">
+        <div class="game-title">{{ game.title }}</div>
+        <div class="game-meta-row">
+          <span class="game-genre">{{ game.genre.split(',')[0].strip() }}</span>
+          <span class="game-score">⭐ {{ game.imdb }}</span>
+        </div>
+      </div>
+    </a>
+    {% else %}
+    <div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">🎮</div>
+      <p>No games found. Add posters to get started!</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- NETFLIX-STYLE GAME PLAYER -->
+<div id="trailerModal" style="display:none;position:fixed;inset:0;background:#000;z-index:9999;flex-direction:column;">
+  <div id="gPlayerTopBar" style="position:absolute;top:0;left:0;right:0;z-index:10;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(0,0,0,.9) 0%,transparent 100%);transition:opacity .4s;">
+    <button onclick="closeTrailerBtn()" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:white;padding:9px 20px;border-radius:4px;font-family:Montserrat,sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;">← Back</button>
+    <div style="font-family:Bebas Neue,sans-serif;font-size:1.6rem;letter-spacing:4px;color:white;">F<span style="color:#E50914;">O</span>X <span style="font-family:Montserrat,sans-serif;font-size:.75rem;color:rgba(255,255,255,.5);font-weight:600;" id="gPlayerTitle"></span></div>
+    <button onclick="closeTrailerBtn()" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:1.5rem;cursor:pointer;">✕</button>
+  </div>
+  <div style="position:relative;width:100%;height:100%;">
+    <iframe id="gYtIframe" style="width:100%;height:100%;border:none;pointer-events:none;" allow="autoplay;encrypted-media" allowfullscreen></iframe>
+    <div id="gClickOverlay" style="position:absolute;inset:0;cursor:pointer;z-index:2;" onclick="gTogglePlay()"></div>
+    <div id="gCenterAnim" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s;pointer-events:none;z-index:3;backdrop-filter:blur(4px);">
+      <svg id="gCenterIcon" width="36" height="36" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+    </div>
+  </div>
+  <div id="gPlayerControls" style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:0 28px 24px;background:linear-gradient(to top,rgba(0,0,0,.95) 0%,transparent 100%);transition:opacity .4s;">
+    <div style="margin-bottom:14px;">
+      <div id="gProgressBar" style="height:4px;background:rgba(255,255,255,.2);border-radius:2px;cursor:pointer;transition:height .2s;" onmouseover="this.style.height='6px'" onmouseout="this.style.height='4px'" onclick="gSeekVideo(event)">
+        <div id="gProgressFill" style="height:100%;background:#E50914;border-radius:2px;width:0%;pointer-events:none;"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <button onclick="gTogglePlay()" style="background:none;border:none;color:white;cursor:pointer;padding:0;display:flex;align-items:center;">
+        <svg id="gPlayIcon" width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="gPauseIcon" width="32" height="32" viewBox="0 0 24 24" fill="white" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="gToggleMute()" style="background:none;border:none;color:white;cursor:pointer;display:flex;padding:0;">
+          <svg id="gVolIcon" width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+          <svg id="gMuteIcon" width="24" height="24" viewBox="0 0 24 24" fill="white" style="display:none;"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+        </button>
+        <input type="range" id="gVolSlider" min="0" max="100" value="100" oninput="gSetVolume(this.value)" style="width:80px;height:4px;accent-color:#E50914;cursor:pointer;"/>
+      </div>
+      <span id="gTimeDisplay" style="font-family:Montserrat,sans-serif;font-size:.78rem;color:rgba(255,255,255,.7);white-space:nowrap;">0:00 / 0:00</span>
+      <span id="gPlayerTitleBottom" style="font-family:Montserrat,sans-serif;font-size:.82rem;font-weight:700;color:rgba(255,255,255,.85);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;"></span>
+      <button onclick="gToggleFullscreen()" style="background:none;border:none;color:white;cursor:pointer;margin-left:auto;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="gNoTrailer" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:5;">
+    <div style="font-size:3rem;">🎮</div>
+    <p style="font-family:Montserrat,sans-serif;color:rgba(255,255,255,.5);font-size:.95rem;">Trailer not available yet.</p>
+    <button onclick="closeTrailerBtn()" style="background:#E50914;color:white;border:none;border-radius:4px;padding:10px 28px;font-family:Montserrat,sans-serif;font-weight:700;cursor:pointer;">← Go Back</button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const trailerMap = {
+  "the witcher 3: wild hunt": "c0i88t0Kacs",
+  "red dead redemption 2": "gmA6MrX81z4",
+  "the last of us part i": "tA1NcfHRjEc",
+  "god of war (2018)": "K0u_kAWLJOA",
+  "elden ring": "E3Huy2cdih0",
+  "halo: combat evolved": "1InnFEaOSns",
+  "the legend of zelda: breath of the wild": "1rPxiXXxftE",
+  "baldur's gate 3": "s8wRQdkD3Zg",
+  "counter-strike 2": "NkMn_-oOgFQ",
+  "grand theft auto v": "QkkoHAzjnUs",
+  "civilization vi": "5KdE0p2joJw",
+  "resident evil 4 remake": "GqHFRaFSfGQ",
+  "minecraft": "MmB9b5njVbA",
+  "ea sports fc 25": "Xd97XshCRiI",
+  "call of duty: modern warfare ii": "a0nFqAFPfkA",
+  "cyberpunk 2077": "8X2kIfS6fb8",
+  "fortnite": "2gUtfBmw86Y",
+  "mortal kombat 1": "9IHkB9I6Uqk",
+  "forza horizon 5": "FYH9n37B7Yw",
+  "spider-man 2": "mWGSKek7nLg",
+  "the sims 4": "BmCHOIfG7Cs",
+  "starcraft ii": "AZ5p09x69DQ",
+  "dark souls iii": "zn3eWvbaFhE",
+  "alien: isolation": "oprzNjBL1Ko",
+  "valorant": "e_E9W2vsRbQ",
+  "portal 2": "tax4e4hBBZc",
+  "assassin's creed mirage": "9lj9GH2ORHY",
+  "nba 2k25": "rKGcR7pJf2M",
+  "no man's sky": "nLtmEjqzg7M",
+  "horizon forbidden west": "Lq594XmpPBg",
+  "gran turismo 7": "kLDCzPMSdpc",
+  "street fighter 6": "Q_IkIf9JogI",
+  "final fantasy xvi": "2tBvkXnEPSc",
+  "dead space remake": "6nipKPSVMRM",
+  "age of empires iv": "9tZjOdoubS0",
+  "microsoft flight simulator": "ReDDgFlBBE4",
+  "it takes two": "5MMk0KBVD00",
+  "pubg: battlegrounds": "RAZE3RlhMpk",
+  "ghost of tsushima": "iqysmS4lxwQ",
+  "apex legends": "FsQnYNRJY_U",
+  "wwe 2k24": "UZr5uJTAGww",
+  "sekiro: shadows die twice": "rXMX4YJ7Lks",
+  "stardew valley": "ot7uXNQskhs",
+  "f1 24": "lbkFMRhicFo",
+  "tetris effect: connected": "ZHjfLBZAMJk",
+  "tekken 8": "V1aFqoX4uio",
+  "xcom 2": "BJ-J8jCLmjM",
+  "outlast ii": "mBqeXUy1NDg",
+  "terraria": "w7uOhFTrrq0",
+  "warzone 2.0": "n2zKhAijPBQ"
+};
+
+function filterGames(btn, genre) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const cards = document.querySelectorAll('.game-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const match = genre === 'All' || card.dataset.genre.toLowerCase().includes(genre.toLowerCase());
+    card.style.display = match ? 'block' : 'none';
+    if (match) visible++;
+  });
+  updateCount(visible);
+}
+
+function searchGames(q) {
+  const query = q.toLowerCase().trim();
+  const cards = document.querySelectorAll('.game-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const match = card.dataset.title.includes(query);
+    card.style.display = match ? 'block' : 'none';
+    if (match) visible++;
+  });
+  updateCount(visible);
+}
+
+function updateCount(n) {
+  document.getElementById('gamesCount').textContent = `— ${n} titles`;
+}
+
+// YouTube IFrame API
+let gYtPlayer = null;
+let gProgressInterval = null;
+let gControlsTimeout = null;
+let gIsPlaying = false;
+let gIsMuted = false;
+let gVol = 100;
+
+const gYtScript = document.createElement('script');
+gYtScript.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(gYtScript);
+
+// Game cards navigate to game_detail page directly (no inline player)
+
+function openGameTrailer(title) {
+  const id = trailerMap[title.toLowerCase()] || trailerMap[title];
+  const modal = document.getElementById('trailerModal');
+  document.getElementById('gPlayerTitle').textContent = title;
+  document.getElementById('gPlayerTitleBottom').textContent = title;
+
+  if (!id) {
+    modal.style.display = 'flex';
+    document.getElementById('gNoTrailer').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    return;
+  }
+
+  document.getElementById('gNoTrailer').style.display = 'none';
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  if (gYtPlayer) { try { gYtPlayer.destroy(); } catch(e){} gYtPlayer = null; }
+
+  gYtPlayer = new YT.Player('gYtIframe', {
+    videoId: id,
+    playerVars: { autoplay:1, controls:0, disablekb:1, fs:0, iv_load_policy:3, modestbranding:1, rel:0, showinfo:0 },
+    events: {
+      onReady: (e) => { e.target.setVolume(gVol); e.target.playVideo(); gIsPlaying=true; gUpdatePP(); gStartProgress(); },
+      onStateChange: (e) => { gIsPlaying = e.data===YT.PlayerState.PLAYING; gUpdatePP(); gIsPlaying ? gStartProgress() : gStopProgress(); }
+    }
+  });
+
+  // Auto-hide controls
+  modal.addEventListener('mousemove', () => {
+    document.getElementById('gPlayerControls').style.opacity='1';
+    document.getElementById('gPlayerTopBar').style.opacity='1';
+    clearTimeout(gControlsTimeout);
+    gControlsTimeout = setTimeout(() => {
+      if(gIsPlaying) {
+        document.getElementById('gPlayerControls').style.opacity='0';
+        document.getElementById('gPlayerTopBar').style.opacity='0';
+      }
+    }, 3000);
+  });
+}
+
+function closeTrailerBtn() {
+  gStopProgress();
+  if (gYtPlayer) { try { gYtPlayer.stopVideo(); gYtPlayer.destroy(); } catch(e){} gYtPlayer = null; }
+  document.getElementById('trailerModal').style.display = 'none';
+  document.getElementById('gProgressFill').style.width = '0%';
+  document.getElementById('gTimeDisplay').textContent = '0:00 / 0:00';
+  document.getElementById('gNoTrailer').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function gTogglePlay() {
+  if (!gYtPlayer) return;
+  const el = document.getElementById('gCenterAnim');
+  const icon = document.getElementById('gCenterIcon');
+  icon.innerHTML = gIsPlaying ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  el.style.opacity='1'; setTimeout(()=>el.style.opacity='0',600);
+  gIsPlaying ? gYtPlayer.pauseVideo() : gYtPlayer.playVideo();
+}
+
+function gUpdatePP() {
+  document.getElementById('gPlayIcon').style.display = gIsPlaying?'none':'block';
+  document.getElementById('gPauseIcon').style.display = gIsPlaying?'block':'none';
+}
+
+function gToggleMute() {
+  if (!gYtPlayer) return;
+  gIsMuted = !gIsMuted;
+  gIsMuted ? gYtPlayer.mute() : (gYtPlayer.unMute(), gYtPlayer.setVolume(gVol));
+  document.getElementById('gVolIcon').style.display = gIsMuted?'none':'block';
+  document.getElementById('gMuteIcon').style.display = gIsMuted?'block':'none';
+}
+
+function gSetVolume(v) {
+  gVol = parseInt(v);
+  if (!gYtPlayer) return;
+  gYtPlayer.setVolume(gVol);
+  gIsMuted = gVol===0;
+  if (!gIsMuted) gYtPlayer.unMute();
+  document.getElementById('gVolIcon').style.display = gIsMuted?'none':'block';
+  document.getElementById('gMuteIcon').style.display = gIsMuted?'block':'none';
+}
+
+function gSeekVideo(e) {
+  if (!gYtPlayer) return;
+  const bar = e.currentTarget;
+  const rect = bar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  gYtPlayer.seekTo(pct * gYtPlayer.getDuration(), true);
+}
+
+function gFormatTime(s) {
+  const m = Math.floor(s/60); const sec = Math.floor(s%60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+function gStartProgress() {
+  gStopProgress();
+  gProgressInterval = setInterval(() => {
+    if (!gYtPlayer || typeof gYtPlayer.getCurrentTime !== 'function') return;
+    const cur = gYtPlayer.getCurrentTime(); const dur = gYtPlayer.getDuration();
+    if (dur>0) {
+      document.getElementById('gProgressFill').style.width = (cur/dur*100)+'%';
+      document.getElementById('gTimeDisplay').textContent = `${gFormatTime(cur)} / ${gFormatTime(dur)}`;
+    }
+  }, 500);
+}
+
+function gStopProgress() { if(gProgressInterval){clearInterval(gProgressInterval);gProgressInterval=null;} }
+
+function gToggleFullscreen() {
+  const el = document.getElementById('trailerModal');
+  if (!document.fullscreenElement) el.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') closeTrailerBtn();
+  if (e.key===' ' && document.getElementById('trailerModal').style.display==='flex') { e.preventDefault(); gTogglePlay(); }
+});
+</script>
+{% endblock %}

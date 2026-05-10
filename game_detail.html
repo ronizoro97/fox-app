@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% block title %}{{ game.title }} – Fox{% endblock %}
+
+{% block head %}
+<style>
+/* ── HERO ── */
+.detail-hero-wrap {
+  position: relative; width: 100%; min-height: 100vh;
+  display: flex; align-items: flex-end; overflow: hidden;
+}
+.detail-hero-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center top;
+  filter: brightness(0.45); transform: scale(1.03);
+  transition: transform 8s ease;
+}
+.detail-hero-bg.loaded { transform: scale(1); }
+.detail-hero-gradient {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.0) 30%, rgba(0,0,0,0.6) 60%, rgba(10,10,10,1) 100%);
+}
+.detail-hero-gradient-side {
+  position: absolute; inset: 0;
+  background: linear-gradient(to right, rgba(10,10,10,0.95) 0%, rgba(10,10,10,0.7) 40%, transparent 70%);
+}
+.detail-hero-content {
+  position: relative; z-index: 5;
+  padding: 120px 60px 60px; max-width: 680px; width: 100%;
+}
+.detail-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.badge { padding: 4px 10px; border-radius: 4px; font-size: .72rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.badge-cat { background: #E50914; color: white; }
+.badge-type { background: rgba(255,255,255,.15); color: white; border: 1px solid rgba(255,255,255,.2); }
+.badge-age { background: rgba(255,200,0,.15); color: #ffc800; border: 1px solid rgba(255,200,0,.3); }
+.badge-platform { background: rgba(0,180,255,.15); color: #00b4ff; border: 1px solid rgba(0,180,255,.3); font-size: .65rem; }
+
+.detail-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  letter-spacing: 2px; line-height: 1; margin-bottom: 16px;
+  text-shadow: 2px 2px 20px rgba(0,0,0,.8);
+}
+.detail-meta {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 18px; font-size: .88rem; color: rgba(255,255,255,.8);
+}
+.imdb-score {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(255,193,7,.12); border: 1px solid rgba(255,193,7,.3);
+  padding: 5px 12px; border-radius: 20px; font-weight: 700; color: #ffc107; font-size: .88rem;
+}
+.meta-dot { color: rgba(255,255,255,.3); }
+.detail-desc {
+  font-size: .93rem; color: rgba(255,255,255,.8); line-height: 1.7;
+  margin-bottom: 28px; max-width: 560px;
+}
+.detail-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; }
+.btn-play {
+  display: flex; align-items: center; gap: 10px;
+  background: white; color: black; border: none; border-radius: 6px;
+  padding: 13px 32px; font-family: 'Montserrat', sans-serif;
+  font-size: 1rem; font-weight: 800; cursor: pointer; transition: background .2s, transform .15s;
+}
+.btn-play:hover { background: rgba(255,255,255,.85); transform: scale(1.03); }
+.btn-play svg { width: 22px; height: 22px; }
+.btn-trailer {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,.15); color: white; border: 2px solid rgba(255,255,255,.4);
+  border-radius: 6px; padding: 13px 28px; font-family: 'Montserrat', sans-serif;
+  font-size: .95rem; font-weight: 700; cursor: pointer; transition: background .2s, transform .15s;
+  backdrop-filter: blur(4px);
+}
+.btn-trailer:hover { background: rgba(255,255,255,.25); transform: scale(1.03); }
+.btn-mylist {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.1); color: white; border: 2px solid rgba(255,255,255,.3);
+  border-radius: 50px; padding: 13px 20px; font-family: 'Montserrat', sans-serif;
+  font-size: .88rem; font-weight: 700; cursor: pointer; transition: background .2s;
+}
+.btn-mylist:hover { background: rgba(255,255,255,.2); }
+.detail-info-grid { display: flex; flex-direction: column; gap: 8px; }
+.info-row { display: flex; gap: 10px; font-size: .83rem; }
+.info-label { color: rgba(255,255,255,.4); min-width: 90px; }
+.info-value { color: rgba(255,255,255,.85); }
+
+/* ── RELATED ── */
+.detail-bottom { background: #0a0a0a; padding: 0 60px 60px; }
+.related-section { padding-top: 40px; }
+.section-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem;
+  letter-spacing: 3px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::before { content: ''; display: block; width: 4px; height: 22px; background: #E50914; border-radius: 2px; }
+.related-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.movie-card { text-decoration: none; color: white; display: block; border-radius: 6px; overflow: hidden; transition: transform .3s; }
+.movie-card:hover { transform: scale(1.05); }
+.card-poster { position: relative; aspect-ratio: 2/3; background: #1a1a1a; overflow: hidden; }
+.card-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 50%);
+  opacity: 0; transition: opacity .3s;
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 10px; gap: 4px;
+}
+.movie-card:hover .card-overlay { opacity: 1; }
+.card-info { display: flex; gap: 8px; align-items: center; }
+.imdb-badge { font-size: .72rem; color: #ffc107; font-weight: 700; }
+.card-year { font-size: .72rem; color: rgba(255,255,255,.6); }
+.card-title { padding: 8px 4px 4px; font-size: .8rem; font-weight: 600; color: rgba(255,255,255,.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .detail-hero-content { padding: 100px 20px 40px; max-width: 100%; }
+  .detail-hero-gradient-side { display: none; }
+  .detail-title { font-size: clamp(2rem,9vw,3.5rem); }
+  .detail-bottom { padding: 0 16px 40px; }
+  .related-grid { grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 10px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="detail-hero-wrap">
+  <div class="detail-hero-bg" id="heroBg"></div>
+  <div class="detail-hero-gradient"></div>
+  <div class="detail-hero-gradient-side"></div>
+
+  <div class="detail-hero-content">
+    <!-- Badges -->
+    <div class="detail-badges">
+      <span class="badge badge-cat">🎮 Game</span>
+      <span class="badge badge-type">{{ game.genre.split(',')[0].strip() if game.genre else 'Game' }}</span>
+      {% if game.age_rating and game.age_rating not in ['-','nan'] %}
+        <span class="badge badge-age">{{ game.age_rating }}</span>
+      {% endif %}
+      {% if game.platform and game.platform not in ['-','nan'] %}
+        {% for p in game.platform.split(',')[:3] %}
+          <span class="badge badge-platform">{{ p.strip() }}</span>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <!-- Title -->
+    <h1 class="detail-title">{{ game.title }}</h1>
+
+    <!-- Meta -->
+    <div class="detail-meta">
+      {% if game.imdb %}
+      <span class="imdb-score">⭐ {{ game.imdb }} <small style="font-weight:400;opacity:.7">/ 10</small></span>
+      {% endif %}
+      <span>{{ game.year }}</span>
+      {% if game.language %}<span class="meta-dot">·</span><span>{{ game.language }}</span>{% endif %}
+    </div>
+
+    <!-- Description -->
+    {% if game.description %}
+    <p class="detail-desc">{{ game.description }}</p>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="detail-actions">
+      <button class="btn-play" onclick="openTrailer()">
+        <svg viewBox="0 0 24 24" fill="black"><path d="M8 5v14l11-7z"/></svg>
+        Play Trailer
+      </button>
+      <button class="btn-trailer" onclick="openTrailer()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4V8z" fill="currentColor" stroke="none"/></svg>
+        Watch Trailer
+      </button>
+      <button class="btn-mylist" onclick="toggleMyList(this)">
+        <span id="mylist-icon">＋</span> My List
+      </button>
+    </div>
+
+    <!-- Info -->
+    <div class="detail-info-grid">
+      {% if game.genre %}
+      <div class="info-row"><span class="info-label">Genre</span><span class="info-value">{{ game.genre }}</span></div>
+      {% endif %}
+      {% if game.developer and game.developer not in ['-','nan'] %}
+      <div class="info-row"><span class="info-label">Developer</span><span class="info-value">{{ game.developer }}</span></div>
+      {% endif %}
+      {% if game.publisher and game.publisher not in ['-','nan'] %}
+      <div class="info-row"><span class="info-label">Publisher</span><span class="info-value">{{ game.publisher }}</span></div>
+      {% endif %}
+      {% if game.platform and game.platform not in ['-','nan'] %}
+      <div class="info-row"><span class="info-label">Platform</span><span class="info-value">{{ game.platform }}</span></div>
+      {% endif %}
+      {% if game.country %}
+      <div class="info-row"><span class="info-label">Country</span><span class="info-value">{{ game.country }}</span></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- FOX PLAYER MODAL -->
+<div id="foxPlayerModal" class="fp-modal">
+  <div class="fp-video">
+    <iframe id="ytIframe" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+    <div class="fp-click-overlay" onclick="fpTogglePlay()"></div>
+  </div>
+  <div class="fp-top">
+    <button class="fp-back" onclick="foxPlayerClose()">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+      <span id="playerTitle" class="fp-title-bar"></span>
+    </button>
+  </div>
+  <div class="fp-center">
+    <button class="fp-cbtn" onclick="fpSkipBack()">
+      <svg viewBox="0 0 36 36" fill="none">
+        <path d="M18 7V2L11 9l7 7v-5c4.97 0 9 4.03 9 9s-4.03 9-9 9-9-4.03-9-9H6c0 6.63 5.37 12 12 12s12-5.37 12-12S24.63 7 18 7z" fill="white"/>
+        <text x="18" y="22.5" text-anchor="middle" font-size="9" fill="white" font-weight="bold" font-family="Montserrat,sans-serif">10</text>
+      </svg>
+      <span>-10s</span>
+    </button>
+    <button class="fp-cbtn" onclick="fpTogglePlay()">
+      <svg id="playIcon" viewBox="0 0 36 36" fill="white"><path d="M12 8v20l16-10z"/></svg>
+      <svg id="pauseIcon" viewBox="0 0 36 36" fill="white" style="display:none"><path d="M9 8h5v20H9zm13 0h5v20h-5z"/></svg>
+    </button>
+    <button class="fp-cbtn" onclick="fpSkipForward()">
+      <svg viewBox="0 0 36 36" fill="none">
+        <path d="M18 7V2l7 7-7 7v-5c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9h3c0 6.63-5.37 12-12 12S6 25.63 6 19 11.37 7 18 7z" fill="white"/>
+        <text x="18" y="22.5" text-anchor="middle" font-size="9" fill="white" font-weight="bold" font-family="Montserrat,sans-serif">10</text>
+      </svg>
+      <span>+10s</span>
+    </button>
+  </div>
+  <div class="fp-bottom">
+    <div class="fp-seek-wrap" id="seekBar">
+      <div class="fp-seek-track">
+        <div class="fp-seek-fill" id="seekFill"><div class="fp-seek-dot"></div></div>
+      </div>
+    </div>
+    <div class="fp-row">
+      <div class="fp-left">
+        <button class="fp-playbtn" onclick="fpTogglePlay()">
+          <svg id="playIcon2" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="pauseIcon2" viewBox="0 0 24 24" fill="white" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <span class="fp-time"><span id="timeElapsed">0:00</span> / <span id="timeDuration">3:00</span></span>
+      </div>
+      <div class="fp-right">
+            <button onclick="fpSelectLang(this,'Hindi')">Hindi</button>
+            <button onclick="fpSelectLang(this,'Spanish')">Spanish</button>
+          </div>
+        </button>
+        <button class="fp-fullbtn" onclick="fpFullscreen()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="fp-no-trailer" id="noTrailerScreen">
+    <div style="font-size:3rem">🎮</div>
+    <p>Trailer not available for this game.</p>
+    <button onclick="foxPlayerClose()">← Go Back</button>
+  </div>
+</div>
+
+<!-- RELATED GAMES -->
+{% if related %}
+<div class="detail-bottom">
+  <section class="related-section">
+    <h2 class="section-title">More Games Like This</h2>
+    <div class="related-grid">
+      {% for g in related %}
+      <a href="{{ url_for('game_detail', game_id=g.id) }}" class="movie-card">
+        <div class="card-poster">
+          <img src="{{ g.poster }}" alt="{{ g.title }}" onerror="this.style.display='none'">
+          <div class="card-overlay">
+            <div class="card-info">
+              <span class="imdb-badge">⭐ {{ g.imdb }}</span>
+              <span class="card-year">{{ g.year }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-title">{{ g.title }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const bg = document.getElementById('heroBg');
+  if (!bg) return;
+  bg.style.backgroundImage = "url('{{ game.poster }}')";
+  const img = new Image();
+  img.onload = () => bg.classList.add('loaded');
+  img.src = '{{ game.poster }}';
+})();
+
+const gameTrailerId = "{{ game.trailer_id or '' }}";
+const gameTitle     = "{{ game.title }}";
+
+function openTrailer() {
+  foxPlayerOpen(gameTrailerId || null, gameTitle, 180);
+}
+function toggleMyList(btn) { window.toggleMyList(btn); }
+</script>
+{% endblock %}

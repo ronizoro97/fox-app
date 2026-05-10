@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Fox – Home{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg" id="heroBg" style="background-image: url('{{ top_movie.poster }}'); background-size: cover; background-position: center center; background-repeat: no-repeat;"></div>
+  <div class="hero-gradient"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <svg width="8" height="8" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#E50914"/></svg>
+      {{ top_movie.category }} · {{ top_movie.type }}
+    </div>
+    <div class="hero-title">
+      {% set words = top_movie.title.split() %}
+      {% if words|length > 1 %}
+        {{ words[:-1]|join(' ') }}<br><span class="accent">{{ words[-1] }}</span>
+      {% else %}
+        {{ top_movie.title }}
+      {% endif %}
+    </div>
+    <div class="hero-meta">
+      <div class="imdb-badge">
+        <span class="imdb-label">IMDb</span>
+        <span class="imdb-score">{{ top_movie.imdb }}/10</span>
+      </div>
+      <span class="hero-year">{{ top_movie.year }}</span>
+      {% if top_movie.age_rating and top_movie.age_rating != '-' %}
+        <span class="age-badge">{{ top_movie.age_rating }}</span>
+      {% endif %}
+    </div>
+    {% if top_movie.genre %}
+    <div class="genre-tags">
+      {% for g in top_movie.genre.split(',')[:4] %}
+        <span class="genre-tag">{{ g.strip() }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <p class="hero-desc">{{ top_movie.description[:180] }}{% if top_movie.description|length > 180 %}…{% endif %}</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('movie_detail', movie_id=top_movie.id) }}" class="btn-info">
+        ℹ More Info
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Movie Rows -->
+<div class="content-section">
+  {% for cat, movies in categories.items() %}
+  <div class="movie-row fade-in">
+    <div class="row-title">
+      {{ cat }}
+      <a href="{{ url_for('browse') }}?category={{ cat }}" class="see-all">See all →</a>
+    </div>
+    <div class="movies-row">
+      {% for movie in movies %}
+      <a href="{% if movie.category == 'Games' %}{{ url_for('game_detail', game_id=movie.id) }}{% else %}{{ url_for('movie_detail', movie_id=movie.id) }}{% endif %}" class="movie-card">
+        <div class="card-poster-wrap">
+          {% if movie.poster %}
+            <img src="{{ movie.poster }}" alt="{{ movie.title }}"
+                 onerror="this.parentElement.innerHTML='<div class=\'card-poster-placeholder\'><div class=\'icon\'>🎬</div><div class=\'ptitle\'>{{ movie.title }}</div></div>'"/>
+          {% else %}
+            <div class="card-poster-placeholder">
+              <div class="icon">🎬</div>
+              <div class="ptitle">{{ movie.title }}</div>
+            </div>
+          {% endif %}
+        </div>
+        <div class="card-overlay">
+          <div class="card-title">{{ movie.title }}</div>
+          <div class="card-imdb">⭐ {{ movie.imdb }}/10</div>
+          <div class="card-type-tag">{{ movie.type }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}
